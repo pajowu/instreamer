@@ -35,6 +35,8 @@ import com.robbi5.instreamer.StreamService;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import android.graphics.BitmapFactory;
+import android.util.Base64;
 
 public class MainFragment extends Fragment {
   static final int CHECK_HDMI_MSG = 0;
@@ -52,6 +54,7 @@ public class MainFragment extends Fragment {
 
   SurfaceView surfaceView;
   SurfaceHolder surfaceHolder;
+  ImageView noSignalImageView;
   TextView noSignalTextView;
   TextView textView;
   ScrollView scrollView;
@@ -75,7 +78,9 @@ public class MainFragment extends Fragment {
 
     surfaceView = (SurfaceView) root.findViewById(R.id.surfaceView);
     surfaceHolder = surfaceView.getHolder();
+    noSignalImageView = (ImageView) root.findViewById(R.id.noSignalImageView);
     noSignalTextView = (TextView) root.findViewById(R.id.noSignalTextView);
+
     textView = (TextView) root.findViewById(R.id.textView);
     scrollView = (ScrollView) root.findViewById(R.id.scrollView);
     recordingImageView = (ImageView) root.findViewById(R.id.recordingImageView);
@@ -213,7 +218,31 @@ public class MainFragment extends Fragment {
   }
 
   private void onSettingsUpdate() {
+    onSettingsUpdate("");
+  }
+
+  private void onSettingsUpdate(String key) {
     scrollView.setVisibility(preferences.getBoolean("displayLog", true) ? View.VISIBLE : View.INVISIBLE);
+    if (key.equals("no_hdmi_image_url") || (preferences.contains("no_hdmi_image_url") && preferences.getString("no_hdmi_image", "").isEmpty())) {
+        new DownloadImageTask(preferences)
+          .execute(preferences.getString("no_hdmi_image_url", ""));
+      }
+    String image = preferences.getString("no_hdmi_image", "");
+    if (!image.isEmpty()) {
+      byte[] image_bytes = Base64.decode(image, Base64.DEFAULT);
+      noSignalImageView.setImageBitmap(BitmapFactory.decodeByteArray(image_bytes, 0, image_bytes.length));
+    }
+  }
+
+  private void setNoSignalVisibility(int visibility) {
+    String image = preferences.getString("no_hdmi_image", "");
+    if (image.isEmpty()) {
+       noSignalImageView.setVisibility(View.INVISIBLE);
+       noSignalTextView.setVisibility(visibility);
+    } else {
+      noSignalImageView.setVisibility(visibility);
+      noSignalTextView.setVisibility(View.INVISIBLE);
+    }
   }
 
   public synchronized void checkHdmiReady() {
@@ -335,7 +364,7 @@ public class MainFragment extends Fragment {
     @Override
     public void onReceive(Context context, Intent intent) {
       if (!intent.getBooleanExtra(RtkHDMIService.EXTRA_HDMI_PLUGGED_STATE, false)) {
-        noSignalTextView.setVisibility(View.VISIBLE);
+        setNoSignalVisibility(View.VISIBLE);
         lastMode = mode;
         if (mode == MODE_PREVIEW) {
           stopPreview();
@@ -346,7 +375,7 @@ public class MainFragment extends Fragment {
       }
 
       checkHdmiReadyHandler.sendEmptyMessageDelayed(CHECK_HDMI_MSG, 500);
-      noSignalTextView.setVisibility(View.INVISIBLE);
+      setNoSignalVisibility(View.INVISIBLE);
     }
   }
 
@@ -372,7 +401,7 @@ public class MainFragment extends Fragment {
   class SharedPreferenceChangeListener implements SharedPreferences.OnSharedPreferenceChangeListener {
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-      onSettingsUpdate();
+      onSettingsUpdate(key);
     }
   }
 }

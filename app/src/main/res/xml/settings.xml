@@ -13,6 +13,11 @@
         android:summary=""
         android:defaultValue="ffmpeg -i - -c copy -bsf:a aac_adtstoasc -f flv rtmp://192.168.1.55:1935/live/hdmi" />
 
+    <EditTextPreference android:title="No HDMI Image URL"
+        android:key="no_hdmi_image_url"
+        android:summary=""
+        android:defaultValue="http://example.com/no_signal.png" />
+
     <ListPreference android:title="Video bitrate (kBps)"
         android:key="videoBitrate"
         android:summary=""
